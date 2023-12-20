@@ -9,7 +9,10 @@ use stm32h7xx_hal::{
     adc,
     delay::Delay,
     prelude::*,
-    rcc, stm32,
+    rcc,
+    sdmmc::{SdCard, Sdmmc},
+    stm32,
+    stm32::SDMMC1,
     stm32::TIM2,
     time::{Hertz, MegaHertz, MilliSeconds},
     timer::Event,
@@ -47,6 +50,7 @@ pub struct System {
     pub flash: crate::flash::Flash,
     pub clocks: CoreClocks,
     pub uart: crate::uart::UART,
+    pub sd: Sdmmc<SDMMC1, SdCard>,
 }
 
 impl System {
@@ -218,7 +222,7 @@ impl System {
         );
 
         // Setup GPIOs
-        let gpio = crate::gpio::GPIO::init(
+        let mut gpio = crate::gpio::GPIO::init(
             gpioc.pc7,
             gpiob.pb11,
             Some(gpiob.pb12),
@@ -279,6 +283,18 @@ impl System {
             uart5: Some((device.UART5, ccdr.peripheral.UART5)),
         };
 
+        let sd: Sdmmc<SDMMC1, SdCard> = crate::sdmmc::init(
+            gpio.daisy1.take().unwrap(),
+            gpio.daisy2.take().unwrap(),
+            gpio.daisy3.take().unwrap(),
+            gpio.daisy4.take().unwrap(),
+            gpio.daisy5.take().unwrap(),
+            gpio.daisy6.take().unwrap(),
+            device.SDMMC1,
+            ccdr.peripheral.SDMMC1,
+            &ccdr.clocks,
+        );
+
         System {
             gpio,
             audio,
@@ -291,6 +307,7 @@ impl System {
             flash,
             uart,
             clocks: ccdr.clocks,
+            sd,
         }
     }
 }
